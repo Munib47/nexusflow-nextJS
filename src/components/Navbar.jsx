@@ -24,19 +24,36 @@ export default function Navbar() {
   // Logic: iterate every watched section top-to-bottom. Keep updating `found`
   // for every section whose top edge is at or above (navbar + 60px). The LAST
   // match is the deepest section the user has scrolled into → that's active.
-  // This works reliably regardless of section height (unlike IntersectionObserver
-  // rootMargin tuning which breaks on short sections like Pricing).
+  // After the loop, if the matched section's bottom has also scrolled above the
+  // trigger (user is in an unmapped area like the contact form or footer), or
+  // if the user is at the very bottom of the page, we clear active to ''.
   useEffect(() => {
     const TRIGGER = NAVBAR_HEIGHT + 60;
 
     const handleScroll = () => {
       let found = '';
-      for (const { id } of NAV_LINKS) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        if (el.getBoundingClientRect().top <= TRIGGER) found = id;
+
+      const atPageBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
+
+      if (!atPageBottom) {
+        for (const { id } of NAV_LINKS) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          if (el.getBoundingClientRect().top <= TRIGGER) found = id;
+        }
+
+        // User has scrolled past the bottom of the last matched section
+        // into an unmapped area (contact form, footer, etc.) — clear active.
+        if (found) {
+          const foundEl = document.getElementById(found);
+          if (foundEl && foundEl.getBoundingClientRect().bottom <= TRIGGER) {
+            found = '';
+          }
+        }
       }
-      if (found) setActiveId(found);
+
+      setActiveId(found); // always call so clearing to '' is never skipped
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
